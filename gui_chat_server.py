@@ -40,6 +40,7 @@ def work_thread(client_socket):
         client_socket.send(pickle.dumps(generate_rooms()))
         print("send stage")
 
+        room = None;
         client_name = "GuestUser"
 
         while True:
@@ -49,8 +50,11 @@ def work_thread(client_socket):
             # ウィンドウが閉じられたときの処理
             if receive_msg == "-10":
                 print("-10")
-                room.remove_player(client_socket)
-                client_socket.send(send_msg.encode("ascii"))
+                if room is not None:
+                    room.remove_player(client_socket)
+                    if len(room.players) == 0:
+                        play_rooms.rooms.remove(room)
+                    client_socket.send(send_msg.encode("ascii"))
                 break
 
             # ルーム作成者がルームを退出したときの処理
@@ -58,7 +62,7 @@ def work_thread(client_socket):
                 print("delete_room")
                 room.remove_player(client_socket)
                 play_rooms.rooms.remove(room)
-                client_socket.send("leave".encode("ascii"))
+                client_socket.send("leave_room".encode("ascii"))
                 for join_player in room.players:
                     if client_socket is not join_player:
                         join_player.send("room_deleted".encode("ascii"))
@@ -67,12 +71,14 @@ def work_thread(client_socket):
             elif receive_msg == "j_leave_room":
                 print("leave_room")
                 room.remove_player(client_socket)
-                client_socket.send("leave".encode("ascii"))
+                client_socket.send("leave_room".encode("ascii"))
 
             # クライアントからユーザ名を受け取る
             elif receive_msg == "system_start":
                 client = pickle.loads(client_socket.recv(4096))
                 client_name = client.get_name()
+                if client_name == "":
+                    client_name = "Guest"
                 print("create account:", client.get_name())
 
             # ルームリストを送信する
@@ -109,7 +115,10 @@ def work_thread(client_socket):
                 print("request_room")
                 req_room = pickle.loads(client_socket.recv(4096))
                 if req_room[2] is "c":
-                    room = play_rooms.create_room(req_room[0], req_room[1])
+                    if req_room[0] == "":
+                        room = play_rooms.create_room("AnonymousRoom", req_room[1])
+                    else:
+                        room = play_rooms.create_room(req_room[0], req_room[1])
                     print("create Room")
                     room.add_player(client_socket)
                 elif req_room[3] is "j":
@@ -154,15 +163,13 @@ def work_thread(client_socket):
                 for player in room.players:
                     player.send(send_msg.encode('ascii'))
                     if receive_msg == words[room.index].english:
-                        if room.index+1 == len(words):
+                        if room.index + 1 == len(words):
                             player.send("game_finish".encode("ascii"))
                         else:
                             player.send("correct_answer".encode("ascii"))
                 if receive_msg == words[room.index].english:
                     room.index += 1
 
-    except ConnectionResetError:
-        pass
     finally:
         client_socket.close()
         print("disconnection")

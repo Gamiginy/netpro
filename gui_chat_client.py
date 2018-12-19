@@ -327,7 +327,7 @@ def play_window(permission):
     msg_form.place(relx=0.8, rely=0.9, relwidth=0.15, relheight=0.05)
     msg_form.bind("<Return>", send_entry)
 
-    label1 = tk.Label(main_frame, text="ゲームを開始する場合は「Start」を押してください。",font=("",20))
+    label1 = tk.Label(main_frame, text="ゲームを開始する場合は「Start」を押してください。", font=("", 20))
     label1.place(relx=0, rely=0)
 
     # sendボタンの設定
