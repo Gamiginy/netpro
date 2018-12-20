@@ -11,6 +11,7 @@ class Room:
         self.address = address + name
         self.max_num = max_num
         self.players = []
+        self.score_list = dict()
         self.reception = True
         self.index = 0
 

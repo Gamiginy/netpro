@@ -2,6 +2,8 @@
 import socket
 import threading
 import pickle
+from time import sleep
+from collections import OrderedDict
 
 from section import generate_rooms
 import sql
@@ -40,8 +42,9 @@ def work_thread(client_socket):
         client_socket.send(pickle.dumps(generate_rooms()))
         print("send stage")
 
-        room = None;
+        room = None
         client_name = "GuestUser"
+        score = 0
 
         while True:
             receive_msg = client_socket.recv(1024).decode("ascii")
@@ -67,7 +70,7 @@ def work_thread(client_socket):
                     if client_socket is not join_player:
                         join_player.send("room_deleted".encode("ascii"))
 
-            # ルーム作成者がルームを退出したときの処理
+            # ルーム参加者がルームを退出したときの処理
             elif receive_msg == "j_leave_room":
                 print("leave_room")
                 room.remove_player(client_socket)
@@ -115,10 +118,8 @@ def work_thread(client_socket):
                 print("request_room")
                 req_room = pickle.loads(client_socket.recv(4096))
                 if req_room[2] is "c":
-                    if req_room[0] == "":
-                        room = play_rooms.create_room("AnonymousRoom", req_room[1])
-                    else:
-                        room = play_rooms.create_room(req_room[0], req_room[1])
+                    room = play_rooms.create_room(req_room[0], req_room[1])
+                    room.score_list[client_name] = score
                     print("create Room")
                     room.add_player(client_socket)
                 elif req_room[3] is "j":
@@ -127,6 +128,7 @@ def work_thread(client_socket):
                         if req_room[2] == r.hashcode:
                             room = r
                             room.add_player(client_socket)
+                            room.score_list[client_name] = score
                             print(room.name)
 
             # ステージに適した単語リストを送信する
@@ -139,8 +141,6 @@ def work_thread(client_socket):
                     filter(sql.Word.part_section == req_part_section.part_name). \
                     all()
 
-                for word in words:
-                    print(word.english)
                 client_socket.send(pickle.dumps(words))
                 print("send words")
 
@@ -152,6 +152,8 @@ def work_thread(client_socket):
                 print("game_start")
                 for player in room.players:
                     player.send("correct_answer".encode("ascii"))
+                    sleep(1)
+                    player.send(pickle.dumps(room.score_list))
                     room.reception = False
 
             # 受け取った回答が正解か判定
@@ -160,13 +162,27 @@ def work_thread(client_socket):
                 receive_msg = client_socket.recv(1024).decode("ascii")
                 send_msg = client.get_name() + ": " + receive_msg
 
+                if receive_msg == words[room.index].english:
+                    score += 1
+                    room.score_list[client_name] = score
                 for player in room.players:
                     player.send(send_msg.encode('ascii'))
+                    sleep(1)
                     if receive_msg == words[room.index].english:
                         if room.index + 1 == len(words):
                             player.send("game_finish".encode("ascii"))
+                            sleep(1)
+                            send_score_list = OrderedDict(
+                                sorted(room.score_list.items(), key=lambda x: x[1], reverse=True))
+                            player.send(pickle.dumps(send_score_list))
+                            sleep(1)
                         else:
                             player.send("correct_answer".encode("ascii"))
+                            sleep(1)
+                            send_score_list = OrderedDict(sorted(room.score_list.items(), key=lambda x: x[1],reverse=True))
+                            player.send(pickle.dumps(send_score_list))
+                            sleep(1)
+                            print(room.score_list)
                 if receive_msg == words[room.index].english:
                     room.index += 1
 

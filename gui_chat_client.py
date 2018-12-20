@@ -7,6 +7,7 @@ import pickle
 import tkinter as tk
 from tkinter import messagebox
 import re
+import random
 
 from client import Client
 
@@ -43,7 +44,10 @@ def start_window():
     print("start window")
 
     def start_game():
-        client.set_name(name_form.get())
+        name = name_form.get()
+        if name == "":
+            name = "GuestUser" + str(random.randint(0, 100001))
+        client.set_name(name)
         send_message("system_start")
         send_object(client)
 
@@ -235,7 +239,15 @@ def room_select_window(part_section):
 
 def create_room_window():
     def create_room():
-        create_room_info = (room_name_form.get(), room_maxnum_form.get(), "c")
+        room_name = room_name_form.get()
+        room_max = room_maxnum_form.get()
+        if room_name == "":
+            room_name = "AnonymousRoom" + str(random.randint(0, 100001))
+        if room_max == "":
+            room_max = "4"
+        if int(room_max) > 4:
+            room_max = "4"
+        create_room_info = (room_name, room_max, "c")
         send_message("request_room")
         send_object(create_room_info)
         main_frame.destroy()
@@ -281,11 +293,23 @@ def play_window(permission):
         index = 0
         while reception is True:
             msg = receive_message()
+            print(msg)
             if msg == "correct_answer":
                 display_word(index)
                 index += 1
+                sleep(1)
+                display_score()
+                sleep(1)
+                print("getScoreList")
             elif msg == "leave_room":
                 break
+            elif msg == "game_finish":
+                display_score()
+                sleep(1)
+                end_frame = tk.Frame(main_frame)
+                end_frame.place(relx=0, rely=0.1, relwidth=0.8, relheight=0.9)
+                end_msg = tk.Label(end_frame, text="ゲームが終了しました。戻るボタンを押してルームリストに戻ってください。")
+                end_msg.place(relx=0.3, rely=0.4)
             elif msg == "room_deleted":
                 deleted_label = tk.Label(main_frame, text="この部屋は作成者によって削除されました。戻るボタンから退出してください。")
                 deleted_label.place(relx=0.3, rely=0.3)
@@ -294,16 +318,26 @@ def play_window(permission):
                 send_button.destroy()
             else:
                 message_list.insert(0, msg)
-            sleep(1)
+                sleep(1)
 
     def display_word(index):
-        word_frame = None
         word_frame = tk.Frame(main_frame)
         word_frame.place(relx=0, rely=0, relwidth=0.8, relheight=1)
 
         word = words[index]
         word_label = tk.Label(word_frame, text=word.japanese, font=("", int(300 / len(word.japanese))))
         word_label.pack(expand=1, fill=tk.BOTH)
+
+    def display_score():
+        score = receive_object()
+
+        score_list = ""
+        rank = 1
+        for k, v in score.items():
+            score_list += str(rank) + "位:" + k + "," + str(v) + "p ; "
+            rank += 1
+        score_label = tk.Label(main_frame, text=score_list)
+        score_label.place(relx=0, rely=0)
 
     main_frame = tk.Frame(root)
     main_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
@@ -327,9 +361,6 @@ def play_window(permission):
     msg_form.place(relx=0.8, rely=0.9, relwidth=0.15, relheight=0.05)
     msg_form.bind("<Return>", send_entry)
 
-    label1 = tk.Label(main_frame, text="ゲームを開始する場合は「Start」を押してください。", font=("", 20))
-    label1.place(relx=0, rely=0)
-
     # sendボタンの設定
     send_button = tk.Button(main_frame, text="send", command=lambda: send_btn())
     send_button.place(relx=0.95, rely=0.9, relwidth=0.05, relheight=0.05)
@@ -338,8 +369,15 @@ def play_window(permission):
     back_button.place(relx=0.95, rely=0.95, relwidth=0.05, relheight=0.05)
 
     if permission is "c":
+        label1 = tk.Label(main_frame, text="ゲームを開始する場合は「Start」を押してください。", font=("", 20))
+        label1.place(relx=0, rely=0)
+
         button2 = tk.Button(main_frame, text="Start", command=lambda: send_message("game_start"))
         button2.place(relx=0.3, rely=0.4, relwidth=0.3, relheight=0.2)
+
+    if permission is "j":
+        label1 = tk.Label(main_frame, text="部屋作成者によってゲームが開始されるまで待機してください。", font=("", 15))
+        label1.place(relx=0, rely=0)
 
     # メッセージ受信用のスレッドを起動
     p = threading.Thread(target=display_msg)
