@@ -297,15 +297,15 @@ def play_window(permission):
             if msg == "correct_answer":
                 display_word(index)
                 index += 1
-                sleep(1)
+                sleep(0.25)
                 display_score()
-                sleep(1)
+                sleep(0.25)
                 print("getScoreList")
             elif msg == "leave_room":
                 break
             elif msg == "game_finish":
                 display_score()
-                sleep(1)
+                sleep(0.25)
                 end_frame = tk.Frame(main_frame)
                 end_frame.place(relx=0, rely=0.1, relwidth=0.8, relheight=0.9)
                 end_msg = tk.Label(end_frame, text="ゲームが終了しました。戻るボタンを押してルームリストに戻ってください。")
@@ -318,7 +318,7 @@ def play_window(permission):
                 send_button.destroy()
             else:
                 message_list.insert(0, msg)
-                sleep(1)
+                sleep(0.25)
 
     def display_word(index):
         word_frame = tk.Frame(main_frame)

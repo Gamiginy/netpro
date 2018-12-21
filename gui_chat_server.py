@@ -167,22 +167,22 @@ def work_thread(client_socket):
                     room.score_list[client_name] = score
                 for player in room.players:
                     player.send(send_msg.encode('ascii'))
-                    sleep(1)
+                    sleep(0.25)
                     if receive_msg == words[room.index].english:
                         if room.index + 1 == len(words):
                             player.send("game_finish".encode("ascii"))
-                            sleep(1)
+                            sleep(0.25)
                             send_score_list = OrderedDict(
                                 sorted(room.score_list.items(), key=lambda x: x[1], reverse=True))
                             player.send(pickle.dumps(send_score_list))
-                            sleep(1)
+                            sleep(0.25)
                         else:
                             player.send("correct_answer".encode("ascii"))
-                            sleep(1)
-                            send_score_list = OrderedDict(sorted(room.score_list.items(), key=lambda x: x[1],reverse=True))
+                            sleep(0.25)
+                            send_score_list = OrderedDict(
+                                sorted(room.score_list.items(), key=lambda x: x[1], reverse=True))
                             player.send(pickle.dumps(send_score_list))
-                            sleep(1)
-                            print(room.score_list)
+                            sleep(0.25)
                 if receive_msg == words[room.index].english:
                     room.index += 1
 
