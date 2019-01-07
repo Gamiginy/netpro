@@ -135,11 +135,17 @@ def work_thread(client_socket):
             elif receive_msg == "request_words":
                 print("request_words")
                 # 単語関連の設定＆送信
-                words = sql_session.query(sql.Word). \
-                    filter(sql.Word.part == req_part.number). \
-                    filter(sql.Word.section == req_section.number). \
-                    filter(sql.Word.part_section == req_part_section.part_name). \
-                    all()
+                if req_part_section.part_name == "すべて":
+                    words = sql_session.query(sql.Word). \
+                        filter(sql.Word.part == req_part.number). \
+                        filter(sql.Word.section == req_section.number). \
+                        all()
+                else:
+                    words = sql_session.query(sql.Word). \
+                        filter(sql.Word.part == req_part.number). \
+                        filter(sql.Word.section == req_section.number). \
+                        filter(sql.Word.part_section == req_part_section.part_name). \
+                        all()
 
                 client_socket.send(pickle.dumps(words))
                 print("send words")
